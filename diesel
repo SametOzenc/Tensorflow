@@ -95,9 +95,6 @@
 
 import pandas as pd
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Conv1D, LSTM, Bidirectional
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.callbacks import ModelCheckpoint
 
 
 # This function normalizes the dataset using min max scaling.
@@ -222,22 +219,19 @@ def solution_model():
         # recurrent_dropout argument (you can alternatively set it to 0),
         # since it has not been implemented in the cuDNN kernel and may
         # result in much longer training times.
-
-        Conv1D(filters=64, kernel_size=5, padding='causal', activation='relu', input_shape=[N_PAST, 1]),
-        Bidirectional(LSTM(64, return_sequences=True)),
-        Bidirectional(LSTM(32, return_sequences=True)),
-        Dense(64, activation='relu'),
-        Dense(32, activation='relu'),
-        Dense(N_FEATURES)
+        # Input layer
+        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(32, return_sequences=True), 
+                                      input_shape=[N_PAST, N_FEATURES]),
+        # Hidden layer
+        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(32, return_sequences=True)),
+        # Output layer
+        tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(N_FEATURES))
     ])
 
     # Code to train and compile the model
-    optimizer = tf.keras.optimizers.Adam(0.0001)
-    model.compile(optimizer=optimizer, loss=tf.keras.losses.Huber(), metrics=['mae'])
-
-    model.fit(train_set,
-          validation_data=(valid_set),
-          epochs=100)
+    optimizer = tf.keras.optimizers.Adam()
+    model.compile(loss="mse", optimizer=optimizer)
+    model.fit(train_set, epochs=10, validation_data=valid_set)
 
     return model
 
